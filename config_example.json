@@ -1,19 +1,30 @@
 {
   "api_key": "api_key_here",
-  "interpreter": "path/to/dfrotz",
-  "interpreter_args": ["optional", "args", "for", "interpreter"]
+  "interpreter": "path/to/default/interpreter",
+  "interpreter_args": [
+    "optional",
+    "args",
+    "for",
+    "interpreter"
+  ],	
   "stories": [
-	{
-      "filename": "stories/zork1.z3",
-      "name": "Zork 1"
+    {
+      "name": "Zork 1",
+	  "filename": "stories/zork1.z3",
+	  "interpreter": "optional/interpreter/override",
+	  "interpreter_args": [
+		"interpreter",
+		"args",
+		"override"
+      ]
     },
-	{
-      "filename": "stories/zork2.z3",
-      "name": "Zork 2"
+    {
+      "name": "Zork 2",
+      "filename": "stories/zork2.z3"
     },
-	{
-      "filename": "stories/zork3.z3",
-      "name": "Zork 3"
+    {
+      "name": "Zork 3",
+      "filename": "stories/zork3.z3"
     }
   ]
 }
