@@ -11,12 +11,16 @@ import threading
 
 
 class DFrotz():
-    def __init__(self, arg_frotz_path, arg_game_path):
+    def __init__(
+            self,
+            arg_frotz_path,
+            arg_game_path,
+            dfrotz_args=[]):
         self.frotz_path = arg_frotz_path
         self.game_path = arg_game_path
         try:
             self.frotz = subprocess.Popen(
-                [self.frotz_path, '-h', '100', '-w', '60', self.game_path],
+                [self.frotz_path] + dfrotz_args + [self.game_path],
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -47,15 +51,25 @@ class DFrotz():
         self.frotz.stdin.flush()
 
     def generate_output(self, chars):
+        #print(chars)
         output = ''.join(chars)
+
         # clean up Frotz' output
-        if output.endswith('> >'):
+        # TODO This reeks. rewrite with regexes or something
+        if output.endswith('\n> >'):
+            # input prompt, variant #1
             output = output[:-3]
-        elif output.endswith('>'):
+        if output.endswith('\n> > '):
+            # input prompt, variant #1.1
+            output = output[:-4]
+        elif output.endswith('\n>'):
+            # input prompt, variant #2
             output = output[:-1]
-        output = output.replace('\n.\n', '\n\n')
-        #output = output.replace(']\n', '\n')
-        #output = output.replace('\n) ', '\n')
+        elif output.endswith('\n) '):
+            # more output to follow
+            output = output[:-3] + '\n[press /enter to continue]'
+        # status line delimiter
+        output = output.replace('\n. \n', '\n=====\n')
 
         return output
 
@@ -70,3 +84,7 @@ class DFrotz():
             else:
                 chars.append(char)
         return self.generate_output(chars)
+
+    def __del__(self):
+        print('DFROTZ: cleaning up')
+        self.frotz.kill()
