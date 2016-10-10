@@ -26,8 +26,9 @@ class DFrotz():
                 stderr=subprocess.PIPE,
                 shell=False,
                 bufsize=0)
-        except OSError as e:
-            print('Couldn\'t run Frotz. Maybe wrong architecture?')
+        except OSError:
+            print('Couldn\'t run interpreter. Maybe wrong architecture?')
+            self.frotz = None
             sys.exit(0)
         self.queue = queue.Queue()
         self.thread = threading.Thread(
@@ -78,7 +79,7 @@ class DFrotz():
         chars = []
         while True:
             try:
-                char = self.queue.get(timeout=1).decode('cp1252')
+                char = self.queue.get(timeout=1).decode('utf-8')
             except queue.Empty:
                 #print('', end='')
                 break
@@ -87,5 +88,5 @@ class DFrotz():
         return self.generate_output(chars)
 
     def __del__(self):
-        print('DFROTZ: cleaning up')
-        self.frotz.kill()
+        if self.frotz is not None:
+            self.frotz.kill()
