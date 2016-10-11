@@ -1,9 +1,8 @@
 #!/usr/bin/python3
 
 # Frotzbot - a telegram bot to play interactive fiction via
-# external interpreter. Interpreters are required to accept
-# input via stdin and generate output to stdout.
-# This bot was tested with dfrotz and most cheapglk interpreters
+# external interpreter. Interpreters need to be compiled against remglk
+# library (https://github.com/erkyrath/remglk)
 # Idea (and some of the code) taken from https://github.com/sneaksnake/z5bot
 
 import telegram.ext
