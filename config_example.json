@@ -1,4 +1,5 @@
 {
+	"NOTICE ME!": "rename your config to config.json and delete this key-value pair",
   "api_key": "api_key_here",
   "interpreter": "path/to/default/interpreter",
   "interpreter_args": [
@@ -12,7 +13,8 @@
       "name": "Zork 1",
 	  "filename": "stories/zork1.z3",
 	  "interpreter": "optional/interpreter/override",
-	  "interpreter_args": [
+	   "interpreter_args": [
+	    "optional"		
 		"interpreter",
 		"args",
 		"override"
@@ -20,7 +22,8 @@
     },
     {
       "name": "Zork 2",
-      "filename": "stories/zork2.z3"
+	  "filename": "stories/zork2.z3",
+	  "interpreter": "optional/interpreter/override",
     },
     {
       "name": "Zork 3",
