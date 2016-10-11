@@ -1,10 +1,11 @@
 """This module contains a object representing a chat state for frotzbot"""
 
-import dfrotz
+import frotzbotterp
 import traceback
 import telegram.ext
 import re
 import itertools
+import os
 
 
 def grouper(iterable, n):
@@ -26,6 +27,7 @@ class FrotzbotChat():
         self.games_dict = config['stories']
         self.interpreter_path = config['interpreter']
         self.interpreter_args = config['interpreter_args']
+        self.window_separator = config.get('window_separator', '\n\n')
         self.interpreter = None
         self.reply_markup = None
 
@@ -36,8 +38,12 @@ class FrotzbotChat():
         if text != '/start':
             result_text = self.ignore(text)
         else:
-            result_text = 'What game would you like to play?'
-            entries = list(map(lambda x: [x['name']], self.games_dict))
+            result_text = '<What game would you like to play?>\n\n'
+            for game in self.games_dict:
+                result_text = result_text + game['name'] + '\n'
+
+            # entries = list(map(lambda x: [x['name']], self.games_dict))
+            entries = [[x['name']] for x in self.games_dict]
             self.reply_markup = telegram.ReplyKeyboardMarkup(
                 entries, resize_keyboard=True, one_time_keyboard=True)
             self.handle_message = self.select_game
@@ -62,9 +68,15 @@ class FrotzbotChat():
             terp_args = game.get('interpreter_args', self.interpreter_args)
             game_file = game['filename']
 
-            self.interpreter = dfrotz.DFrotz(terp_path, game_file, terp_args)
+            self.interpreter = frotzbotterp.FrotzbotBackend(
+                terp_path,
+                game_file,
+                'savedata' + os.path.sep + str(self.chat_id) + '_',
+                terp_args)
 
-            result_text = self.interpreter.get()
+            result_texts = [x for x in self.interpreter.get()
+                            if not is_empty_string(x)]
+            result_text = self.window_separator.join(result_texts)
             if not result_text:
                 result_text = '<no output>'
 
@@ -84,48 +96,64 @@ class FrotzbotChat():
             text = self.cmd_quit()
         else:
             # check for special commands first
-            #deprecated_cmds = ['save', 'restore']
-            #cmd_regex = '|'.join(deprecated_cmds)
-            #regex = re.compile('^\s*(' + cmd_regex + ')\s*$',
-            #                   re.IGNORECASE)
-            #match = regex.match(text)
-            #if match:
-            if False:
+            # deprecated_cmds = ['save', 'restore', 'quit']
+            deprecated_cmds = ['quit']
+            cmd_regex = '|'.join(deprecated_cmds)
+            regex = re.compile('^\s*(' + cmd_regex + ')\s*$',
+                               re.IGNORECASE)
+            match = regex.match(text)
+            if match:
                 text = 'Use the %s command instead' % ('/' + match.group(1))
             else:
                 try:
-                    self.interpreter.send(text + '\n')
+                    result_texts = self.interpreter.send_and_receive(text)
                 except (IOError, BrokenPipeError):
                     traceback.print_exc()
                     text = '<Error during communication with interpreter>'
                 else:
-                    # check for special commands first
-                    filtered_cmds = ['quit']
-                    cmd_regex = '|'.join(filtered_cmds)
-                    regex = re.compile('^\s*(' + cmd_regex + ')\s*$',
-                                       re.IGNORECASE)
-                    match = regex.match(text)
-
-                    text = self.interpreter.get()
-
                     # response might contain only whitespaces.
                     # since bots can't send 'empty' messages,
                     # assume it means 'press anykey to continue'
-                    if is_empty_string(text):
-                        text = '[press /enter to continue]'
+                    result_texts = [x for x in result_texts
+                                    if not is_empty_string(x)]
+                    text = self.window_separator.join(result_texts)
+                    if not text:
+                        text = '<press /enter to continue>'
+                    #elif text.endswith('\n>\n') and len(text) > 3:
+                    # try to remove input prompt
+                    #    text = text[:-3]
 
-                    if match:
-                        text = 'WARNING: recommended way to issue special commands is via \'/' + match.group(1) + '\'\n' + text
         return text
 
     def cmd_enter(self, text='enter'):
-        return self.send_to_terp('')
+        if self.interpreter is None:
+            text = self.cmd_quit()
+        elif self.interpreter.prompt is None:
+            # Wait, what?
+            text = 'WARNING: You did something really unexpected here. '
+            text = text + 'I\'m gonna ignore your input and just past '
+            text = text + 'current output from interpreter.\n'
+            text = text + 'No promises though. '
+            text = text + 'Demons might fly out of my nose for all I know.\n'
+
+            result_texts = [x for x in self.interpreter.get()
+                            if not is_empty_string(x)]
+            result_text = self.window_separator.join(result_texts)
+            if not result_text:
+                result_text = '<no output>'
+
+            text = text + result_text
+        else:
+            # reasonable guess. If 'terp expects char, it's a space character
+            # if it expects line, it's an empty string
+            text = self.send_to_terp(' ')
+        return text
 
     def cmd_quit(self, text='quit'):
         self.interpreter = None  # TODO force kill interpreter process
         self.handle_message = self.cmd_start
         self.reply_markup = telegram.ReplyKeyboardHide()
-        return 'Frotzbot is stopped. Use /start to start a new session'
+        return '<No active games. /start a new session?>'
 
     def reply(self, bot, update, handler=None, text=None):
         if handler is None:

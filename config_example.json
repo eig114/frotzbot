@@ -12,7 +12,8 @@
       "name": "Zork 1",
 	  "filename": "stories/zork1.z3",
 	  "interpreter": "optional/interpreter/override",
-	  "interpreter_args": [
+	   "interpreter_args": [
+	    "optional"		
 		"interpreter",
 		"args",
 		"override"
@@ -20,7 +21,8 @@
     },
     {
       "name": "Zork 2",
-      "filename": "stories/zork2.z3"
+	  "filename": "stories/zork2.z3",
+	  "interpreter": "optional/interpreter/override",
     },
     {
       "name": "Zork 3",

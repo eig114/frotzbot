@@ -15,18 +15,25 @@ chat_dict = dict()
 config = dict()
 
 
-def debug(bot, update):
+def reload_conf(bot, update, conf_path):
     try:
-        entries = ['1', '2', '3']
-        keyboard = telegram.ReplyKeyboardMarkup(
-            entries, resize_keyboard=True, one_time_keyboard=True)
+        global config
+        with open('config.json', 'r') as f:
+            config = json.load(f)
+
+        for chat in chat_dict.values():
+            chat.games_dict = config['stories']
+            chat.interpreter_path = config['interpreter']
+            chat.interpreter_args = config['interpreter_args']
 
         bot.sendMessage(
             chat_id=update.message.chat_id,
-            text='Choose your destiny:',
-            reply_markup=keyboard)
+            text='<Done! Changes will apply on next restart>')
     except Exception:
         traceback.print_exc()
+        bot.sendMessage(
+            chat_id=update.message.chat_id,
+            text='<Something went wrong. Your new config is probably invalid or something>')
 
 
 def get_chat(chat_id):
@@ -74,19 +81,19 @@ def quit_interpreter(bot, update):
 
 
 def unknown_cmd(bot, update):
-    bot.sendMessage(chat_id=update.message.chat_id, text='I beg your pardon?')
+    bot.sendMessage(chat_id=update.message.chat_id, text='<I beg your pardon?>')
 
 
 def unsupported(bot, update):
     bot.sendMessage(
         chat_id=update.message.chat_id,
-        text='I don\'t support this command yet. Sorry!')
+        text='<I don\'t support this command yet. Sorry!>')
 
 
-def main():
+def main(config_path='config.json'):
     global updater
     global config
-    with open('config.json', 'r') as f:
+    with open(config_path, 'r') as f:
         config = json.load(f)
 
     updater = telegram.ext.Updater(config['api_key'])
@@ -96,8 +103,11 @@ def main():
     enter_cmd_handler = telegram.ext.CommandHandler('enter', enter)
     quit_cmd_handler = telegram.ext.CommandHandler('quit', quit_interpreter)
     save_cmd_handler = telegram.ext.CommandHandler('save', unsupported)
-    restore_cmd_handler = telegram.ext.CommandHandler('restore', unsupported)
-    debug_handler = telegram.ext.CommandHandler('debug', debug)
+    restore_cmd_handler = telegram.ext.CommandHandler('restore',
+                                                      unsupported)
+    reload_handler = telegram.ext.CommandHandler(
+        'reload_conf',
+        lambda b, u: reload_conf(b, u, config_path))
     terp_cmd_handler = telegram.ext.MessageHandler([telegram.ext.Filters.text],
                                                    handle_text)
     unknown_cmd_handler = telegram.ext.MessageHandler(
@@ -112,7 +122,7 @@ def main():
     dispatcher.add_handler(save_cmd_handler)
     dispatcher.add_handler(restore_cmd_handler)
     dispatcher.add_handler(quit_cmd_handler)
-    dispatcher.add_handler(debug_handler)
+    dispatcher.add_handler(reload_handler)
 
     # text handlers
     dispatcher.add_handler(terp_cmd_handler)
