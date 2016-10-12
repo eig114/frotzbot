@@ -1,7 +1,3 @@
-# abstraction layer for external interpreter
-# parts for non-blocking communication are taken from
-# https://gist.github.com/EyalAr/7915597
-
 import json
 import subprocess
 import sys
