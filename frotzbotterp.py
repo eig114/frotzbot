@@ -35,7 +35,11 @@ class FrotzbotBackend():
             self.terp_proc = None
             sys.exit(0)
         else:
-            self.json_iter = FrotzbotBackend.get_json_iter(self.terp_proc.stdout)
+            # get iterator over json output stream
+            self.json_iter = map(lambda x: json.loads(x.decode('utf-8')),
+                                 splitstream.splitfile(self.terp_proc.stdout,
+                                                       format="json",
+                                                       bufsize=1))
 
             # interpreter state is defined as
             # an array of windows
@@ -45,19 +49,9 @@ class FrotzbotBackend():
             # and current state number
             self.gen = 0
 
-    @staticmethod
-    def get_json_iter(out):
-        """get iterator over json output stream"""
-        return map(lambda x: json.loads(x.decode('utf-8')),
-                   splitstream.splitfile(out,
-                                         format="json",
-                                         bufsize=1))
-
     def process_update(self, json_update, filter_input_echo_str=None):
         # first, refresh windows and input info
         # TODO what TODO with multiple inputs?
-        #           TODO with non-text inputs? (like filenames for saving)
-        #self.prompt = json_update['input'][0]
         self.windows = json_update.get('windows', self.windows)
         self.gen = json_update.get('gen', self.gen)
 

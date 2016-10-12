@@ -9,9 +9,37 @@ import telegram.ext
 import traceback
 import json
 import frotzbotchat
+import logging
 
 chat_dict = dict()
 config = dict()
+
+logging.basicConfig(
+    format='[%(asctime)s-%(name)s-%(levelname)s]\n%(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+    level=logging.DEBUG,
+)
+logging.getLogger('telegram').setLevel(logging.WARNING)
+
+
+def log_dialog(in_message, out_messages):
+    logging.info('@%s[%d] sent: %r' % (
+        in_message.from_user.username,
+        in_message.from_user.id,
+        in_message.text)
+    )
+    for out_message in out_messages:
+        logging.info('Answering @%s[%d]: %r' % (
+            in_message.from_user.username,
+            in_message.from_user.id,
+            out_message if out_message is not None else '[None]')
+        )
+
+
+def on_error(bot, update, error):
+    logger = logging.getLogger(__name__)
+    logger.warn('Update %r caused error %r!' % (update, error))
+    print(error)
 
 
 def reload_conf(bot, update, conf_path):
@@ -25,14 +53,19 @@ def reload_conf(bot, update, conf_path):
             chat.interpreter_path = config['interpreter']
             chat.interpreter_args = config['interpreter_args']
 
+        text = '<Done! Changes will apply on next restart>'
         bot.sendMessage(
             chat_id=update.message.chat_id,
-            text='<Done! Changes will apply on next restart>')
+            text=text)
+        log_dialog(update.message, [text])
     except Exception:
-        traceback.print_exc()
+        # traceback.print_exc()
+        text = '<Something went wrong. Your new config is probably invalid or something>'
         bot.sendMessage(
             chat_id=update.message.chat_id,
-            text='<Something went wrong. Your new config is probably invalid or something>')
+            text=text)
+        log_dialog(update.message, [text])
+        logging.error('JSON configuration loading failed', exc_info=1)
 
 
 def get_chat(chat_id):
@@ -50,7 +83,9 @@ def get_chat(chat_id):
 def start(bot, update):
     try:
         chat = get_chat(update.message.chat_id)
-        chat.reply(bot, update, chat.cmd_start)
+        response_msgs = chat.reply(bot, update, chat.cmd_start)
+        print('RESPONSE_MSGS ' + str(list(response_msgs)))
+        log_dialog(update.message, response_msgs)
     except Exception:
         traceback.print_exc()
 
@@ -58,7 +93,8 @@ def start(bot, update):
 def enter(bot, update):
     try:
         chat = get_chat(update.message.chat_id)
-        chat.reply(bot, update, chat.cmd_enter)
+        response_msgs = chat.reply(bot, update, chat.cmd_enter)
+        log_dialog(update.message, response_msgs)
     except Exception:
         traceback.print_exc()
 
@@ -66,7 +102,8 @@ def enter(bot, update):
 def handle_text(bot, update):
     try:
         chat = get_chat(update.message.chat_id)
-        chat.reply(bot, update)
+        response_msgs = chat.reply(bot, update)
+        log_dialog(update.message, response_msgs)
     except Exception:
         traceback.print_exc()
 
@@ -74,19 +111,26 @@ def handle_text(bot, update):
 def quit_interpreter(bot, update):
     try:
         chat = get_chat(update.message.chat_id)
-        chat.reply(bot, update, chat.cmd_quit)
+        response_msgs = chat.reply(bot, update, chat.cmd_quit)
+        log_dialog(update.message, response_msgs)
     except Exception:
         traceback.print_exc()
 
 
 def unknown_cmd(bot, update):
-    bot.sendMessage(chat_id=update.message.chat_id, text='<I beg your pardon?>')
+    text = '<I beg your pardon?>'
+    bot.sendMessage(
+        chat_id=update.message.chat_id,
+        text=text)
+    log_dialog(update.message, [text])
 
 
 def unsupported(bot, update):
+    text = '<I don\'t support this command yet. Sorry!>'
     bot.sendMessage(
         chat_id=update.message.chat_id,
-        text='<I don\'t support this command yet. Sorry!>')
+        text=text)
+    log_dialog(update.message.text, [text])
 
 
 def main(config_path='config.json'):
@@ -113,7 +157,7 @@ def main(config_path='config.json'):
         [telegram.ext.Filters.command], unknown_cmd)
 
     # error handlers
-    # dispatcher.add_error_handler(unknown_cmd_handler)
+    dispatcher.add_error_handler(on_error)
 
     # command handlers
     dispatcher.add_handler(start_cmd_handler)

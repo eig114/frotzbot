@@ -166,13 +166,16 @@ class FrotzbotChat():
             # divide our message by chunks of 4096 chars
             # and send them, except empty string chunks
             max_len = 4096
-            msgs = filter(lambda x: not is_empty_string(x),
-                          map(lambda x: ''.join(
-                              filter(lambda y: y is not None, x)),
-                              grouper(reply_text, max_len)))
-            for msg in msgs:
+            msgs = map(lambda x: ''.join(filter(lambda y: y is not None, x)),
+                       grouper(reply_text, max_len))
+            msg_strings = [x for x in msgs
+                           if not is_empty_string(x)]
+            for msg in msg_strings:
                 bot.sendMessage(
                     chat_id=self.chat_id,
                     text=msg,
                     timeout=5.0,
                     reply_markup=self.reply_markup)
+            return msg_strings
+        else:
+            return []
