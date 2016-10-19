@@ -81,7 +81,7 @@ class FrotzbotChat():
                 result_text = '<no output>'
 
             self.reply_markup = telegram.ReplyKeyboardMarkup(
-                [['/enter', '/quit'], ['/start']], resize_keyboard=True)
+                [['/enter', '/space', '/quit'], ['/start']], resize_keyboard=True)
             self.handle_message = self.send_to_terp
         return result_text
 
@@ -94,6 +94,21 @@ class FrotzbotChat():
     def send_to_terp(self, text):
         if self.interpreter is None:
             text = self.cmd_quit()
+        elif self.interpreter.prompt is None:
+            # Wait, what?
+            text = 'WARNING: You did something really unexpected here. '
+            text = text + 'I\'m gonna ignore your input and just past '
+            text = text + 'current output from interpreter.\n'
+            text = text + 'No promises though. '
+            text = text + 'Demons might fly out of my nose for all I know.\n'
+
+            result_texts = [x for x in self.interpreter.get()
+                            if not is_empty_string(x)]
+            result_text = self.window_separator.join(result_texts)
+            if not result_text:
+                result_text = '<no output>'
+
+            text = text + result_text
         else:
             # check for special commands first
             # deprecated_cmds = ['save', 'restore', 'quit']
@@ -128,24 +143,16 @@ class FrotzbotChat():
     def cmd_enter(self, text='enter'):
         if self.interpreter is None:
             text = self.cmd_quit()
-        elif self.interpreter.prompt is None:
-            # Wait, what?
-            text = 'WARNING: You did something really unexpected here. '
-            text = text + 'I\'m gonna ignore your input and just past '
-            text = text + 'current output from interpreter.\n'
-            text = text + 'No promises though. '
-            text = text + 'Demons might fly out of my nose for all I know.\n'
-
-            result_texts = [x for x in self.interpreter.get()
-                            if not is_empty_string(x)]
-            result_text = self.window_separator.join(result_texts)
-            if not result_text:
-                result_text = '<no output>'
-
-            text = text + result_text
+        elif self.interpreter.prompt['type'] == 'char':
+            text = self.send_to_terp("return")
         else:
-            # reasonable guess. If 'terp expects char, it's a space character
-            # if it expects line, it's an empty string
+            text = self.send_to_terp("\n")
+        return text
+
+    def cmd_space(self, text='space'):
+        if self.interpreter is None:
+            text = self.cmd_quit()
+        else:
             text = self.send_to_terp(' ')
         return text
 

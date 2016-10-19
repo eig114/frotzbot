@@ -2,8 +2,7 @@ import json
 import subprocess
 import sys
 import splitstream
-
-debug_mode = False
+import logging
 
 
 class FrotzbotBackend():
@@ -12,8 +11,11 @@ class FrotzbotBackend():
                  arg_game_path,
                  savefile_prefix='',
                  terp_args=['-fm', '-width', '60', '-height', '100']):
+        self.log = logging.getLogger('FrotzbotBackend')
+        self.log.setLevel(logging.DEBUG)
+
         if not terp_args:
-            print('WARNING: NO TERP ARGS SPECIFIED! REMGLK WILL NOT PRODUCE ANY OUTPUT UNTIL FORMAT ARGUMENTS ARE SPECIFIED MANUALLY!')
+            self.log.warning('WARNING: NO TERP ARGS SPECIFIED! REMGLK WILL NOT PRODUCE ANY OUTPUT UNTIL FORMAT ARGUMENTS ARE SPECIFIED MANUALLY!')
 
         self.terp_path = arg_frotz_path
         self.game_path = arg_game_path
@@ -27,7 +29,10 @@ class FrotzbotBackend():
                 shell=False,
                 bufsize=0)
         except OSError:
-            print('COULDN\'T RUN INTERPRETER. MAYBE WRONG ARCHITECTURE?')
+            self.log.critical(
+                'COULDN\'T RUN INTERPRETER. MAYBE WRONG ARCHITECTURE?',
+                exc_info=1
+            )
             self.terp_proc = None
             sys.exit(0)
         else:
@@ -59,7 +64,7 @@ class FrotzbotBackend():
         # then, form update update_dict, where key is window id and value
         # is new text
         update_dict = dict()
-        for content_update in json_update['content']:
+        for content_update in json_update.get('content', []):
             text = ''
             if 'lines' in content_update:
                 lines = [x for x in content_update['lines']
@@ -105,9 +110,7 @@ class FrotzbotBackend():
     def get(self, previous_input=None):
         out_json = self.get_raw()
 
-        global debug_mode
-        if debug_mode:
-            print('<< ' + str(out_json))
+        self.log.debug("INTERPRETER OUT: %s", str(out_json))
 
         # check for errors
         if out_json['type'] == 'error':
@@ -144,9 +147,7 @@ class FrotzbotBackend():
 
         cmd_text = json.dumps(cmd_json)
 
-        global debug_mode
-        if debug_mode:
-            print('>> ' + cmd_text)
+        self.log.debug("INTERPRETER IN: %s", cmd_text)
 
         self.send_raw(cmd_text)
 
@@ -156,7 +157,7 @@ class FrotzbotBackend():
 
     def __del__(self):
         if self.terp_proc is not None:
-            print('KILLING \'TERP')
+            logging.info('KILLING INTERPRETER')
             self.terp_proc.stdout.close()
             self.terp_proc.stdin.close()
             self.terp_proc.stderr.close()

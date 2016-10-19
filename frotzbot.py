@@ -6,7 +6,6 @@
 # Idea (and some of the code) taken from https://github.com/sneaksnake/z5bot
 
 import telegram.ext
-import traceback
 import json
 import frotzbotchat
 import logging
@@ -14,10 +13,12 @@ import logging
 chat_dict = dict()
 config = dict()
 
+# set up logging
 logging.basicConfig(
     format='[%(asctime)s-%(name)s-%(levelname)s]\n%(message)s',
     datefmt='%Y-%m-%d %H:%M:%S',
     level=logging.DEBUG,
+    filename='frotzbot.log'
 )
 logging.getLogger('telegram').setLevel(logging.WARNING)
 
@@ -65,7 +66,7 @@ def reload_conf(bot, update, conf_path):
             chat_id=update.message.chat_id,
             text=text)
         log_dialog(update.message, [text])
-        logging.error('JSON configuration loading failed', exc_info=1)
+        logging.exception('JSON configuration loading failed')
 
 
 def get_chat(chat_id):
@@ -74,6 +75,7 @@ def get_chat(chat_id):
     if (chat_id in chat_dict):
         chat = chat_dict[chat_id]
     else:
+        logging.info('New chat instance: %s' % chat_id)
         chat = frotzbotchat.FrotzbotChat(chat_id, config)
         chat_dict[chat_id] = chat
 
@@ -81,40 +83,33 @@ def get_chat(chat_id):
 
 
 def start(bot, update):
-    try:
-        chat = get_chat(update.message.chat_id)
-        response_msgs = chat.reply(bot, update, chat.cmd_start)
-        print('RESPONSE_MSGS ' + str(list(response_msgs)))
-        log_dialog(update.message, response_msgs)
-    except Exception:
-        traceback.print_exc()
+    chat = get_chat(update.message.chat_id)
+    response_msgs = chat.reply(bot, update, chat.cmd_start)
+    log_dialog(update.message, response_msgs)
 
 
 def enter(bot, update):
-    try:
-        chat = get_chat(update.message.chat_id)
-        response_msgs = chat.reply(bot, update, chat.cmd_enter)
-        log_dialog(update.message, response_msgs)
-    except Exception:
-        traceback.print_exc()
+    chat = get_chat(update.message.chat_id)
+    response_msgs = chat.reply(bot, update, chat.cmd_enter)
+    log_dialog(update.message, response_msgs)
+
+
+def space(bot, update):
+    chat = get_chat(update.message.chat_id)
+    response_msgs = chat.reply(bot, update, chat.cmd_enter)
+    log_dialog(update.message, response_msgs)
 
 
 def handle_text(bot, update):
-    try:
-        chat = get_chat(update.message.chat_id)
-        response_msgs = chat.reply(bot, update)
-        log_dialog(update.message, response_msgs)
-    except Exception:
-        traceback.print_exc()
+    chat = get_chat(update.message.chat_id)
+    response_msgs = chat.reply(bot, update)
+    log_dialog(update.message, response_msgs)
 
 
 def quit_interpreter(bot, update):
-    try:
-        chat = get_chat(update.message.chat_id)
-        response_msgs = chat.reply(bot, update, chat.cmd_quit)
-        log_dialog(update.message, response_msgs)
-    except Exception:
-        traceback.print_exc()
+    chat = get_chat(update.message.chat_id)
+    response_msgs = chat.reply(bot, update, chat.cmd_quit)
+    log_dialog(update.message, response_msgs)
 
 
 def unknown_cmd(bot, update):
@@ -134,16 +129,20 @@ def unsupported(bot, update):
 
 
 def main(config_path='config.json'):
-    global updater
+    # load config
     global config
     with open(config_path, 'r') as f:
         config = json.load(f)
 
+    # set up updater
+    global updater
     updater = telegram.ext.Updater(config['api_key'])
     dispatcher = updater.dispatcher
 
+    # set up message handlers
     start_cmd_handler = telegram.ext.CommandHandler('start', start)
     enter_cmd_handler = telegram.ext.CommandHandler('enter', enter)
+    space_cmd_handler = telegram.ext.CommandHandler('space', space)
     quit_cmd_handler = telegram.ext.CommandHandler('quit', quit_interpreter)
     save_cmd_handler = telegram.ext.CommandHandler('save', unsupported)
     restore_cmd_handler = telegram.ext.CommandHandler('restore',
@@ -162,6 +161,7 @@ def main(config_path='config.json'):
     # command handlers
     dispatcher.add_handler(start_cmd_handler)
     dispatcher.add_handler(enter_cmd_handler)
+    dispatcher.add_handler(space_cmd_handler)
     dispatcher.add_handler(save_cmd_handler)
     dispatcher.add_handler(restore_cmd_handler)
     dispatcher.add_handler(quit_cmd_handler)
@@ -173,7 +173,6 @@ def main(config_path='config.json'):
     # always add unknown cmd handler last
     dispatcher.add_handler(unknown_cmd_handler)
 
-    #updater.start_polling(poll_interval=2.0, clean=True)
     updater.start_polling(clean=True)
     updater.idle()
 
