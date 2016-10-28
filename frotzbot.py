@@ -144,9 +144,6 @@ def main(config_path='config.json'):
     enter_cmd_handler = telegram.ext.CommandHandler('enter', enter)
     space_cmd_handler = telegram.ext.CommandHandler('space', space)
     quit_cmd_handler = telegram.ext.CommandHandler('quit', quit_interpreter)
-    save_cmd_handler = telegram.ext.CommandHandler('save', unsupported)
-    restore_cmd_handler = telegram.ext.CommandHandler('restore',
-                                                      unsupported)
     reload_handler = telegram.ext.CommandHandler(
         'reload_conf',
         lambda b, u: reload_conf(b, u, config_path))
@@ -162,8 +159,6 @@ def main(config_path='config.json'):
     dispatcher.add_handler(start_cmd_handler)
     dispatcher.add_handler(enter_cmd_handler)
     dispatcher.add_handler(space_cmd_handler)
-    dispatcher.add_handler(save_cmd_handler)
-    dispatcher.add_handler(restore_cmd_handler)
     dispatcher.add_handler(quit_cmd_handler)
     dispatcher.add_handler(reload_handler)
 

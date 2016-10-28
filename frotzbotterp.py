@@ -34,7 +34,6 @@ class FrotzbotBackend():
                 exc_info=1
             )
             self.terp_proc = None
-            sys.exit(0)
         else:
             # get iterator over json output stream
             self.json_iter = map(lambda x: json.loads(x.decode('utf-8')),
@@ -52,7 +51,7 @@ class FrotzbotBackend():
 
     def process_update(self, json_update, filter_input_echo_str=None):
         # first, refresh windows and input info
-        # TODO what TODO with multiple inputs?
+        # TODO what TODO with multiple inputs? Is that even possible?
         self.windows = json_update.get('windows', self.windows)
         self.gen = json_update.get('gen', self.gen)
 
@@ -75,18 +74,20 @@ class FrotzbotBackend():
                         text = text + line_content['text'].replace('\n', ' ') + '\n'
             elif 'text' in content_update:
                 lines = [x for x in content_update['text']
-                         if x is not None and 'content' in x]
+                         if (len(x) == 0) or 'content' in x]
                 for line in lines:
-                    line_contents = line['content']
+                    if 'content' in line:
+                        line_contents = line['content']
 
-                    # try to filter input echo
-                    if filter_input_echo_str:
-                        line_contents = [x for x in line_contents
-                                         if x.get('style', '') != 'input' or x[
-                                             'text'] != filter_input_echo_str]
+                        # try to filter input echo
+                        if filter_input_echo_str:
+                            line_contents = [x for x in line_contents
+                                             if x.get('style', '') != 'input' or x['text'] != filter_input_echo_str]
 
-                    for line_content in line_contents:
-                        text = text + line_content['text'].replace('\n', ' ') + '\n'
+                        for line_content in line_contents:
+                            # text = text + line_content['text'].replace('\n', ' ') + '\n'
+                            text = text + line_content['text']
+                    text = text + '\n'
             elif 'clear' in content_update:
                 continue
             else:
