@@ -112,9 +112,9 @@ class FrotzbotBackend():
 
     def get_styled_text(self, content):
         text = content['text']
+        text = text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
         if 'style' in content and content['style'] in frotzbot_remglk_styles:
             style = frotzbot_remglk_styles[content['style']]
-            text = text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
             text = '<%s>' % style + text + '</%s>' % style
         return text
 

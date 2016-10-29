@@ -13,7 +13,7 @@ You also need a bunch of interpreters compiled with [remglk](https://github.com/
 Compilation instructions for each differ, though it usually involves placing remglk sources inside 
 interpreter's sources directory, then editing Makefile to tell compiler where to look for glk implementation.
 
-Frotzbot supports any interpreter, as long as it accepts valid remglk input ang generates valid remglk responses
+Frotzbot supports any interpreter, as long as it accepts valid remglk input and generates valid remglk response.
 
 
 After that, you need to rename config.json.example to config.json and edit it according to your needs.
