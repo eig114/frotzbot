@@ -38,7 +38,7 @@ class FrotzbotChat():
         if text != '/start':
             result_text = self.ignore(text)
         else:
-            result_text = '<What game would you like to play?>\n\n'
+            result_text = '[What game would you like to play?]\n\n'
             for game in self.games_dict:
                 result_text = result_text + game['name'] + '\n'
 
@@ -58,7 +58,7 @@ class FrotzbotChat():
         try:
             game = next(x for x in self.games_dict if x['name'] == text)
         except StopIteration:
-            result_text = '<Dont\'t know this one. Choose another>'
+            result_text = '[Dont\'t know this one. Choose another]'
             entries = list(map(lambda x: [x['name']], self.games_dict))
             self.reply_markup = telegram.ReplyKeyboardMarkup(
                 entries, resize_keyboard=True, one_time_keyboard=True)
@@ -75,7 +75,7 @@ class FrotzbotChat():
                     'savedata' + os.path.sep + str(self.chat_id) + '_',
                     terp_args)
             except OSError:
-                result_text = '<Could not start interpreter>'
+                result_text = '[Could not start interpreter]'
                 self.handle_message = self.cmd_start
                 self.reply_markup = telegram.ReplyKeyboardMarkup(
                     [['/start']],
@@ -83,7 +83,7 @@ class FrotzbotChat():
             else:
                 result_text = self.window_separator.join(self.interpreter.get())
                 if is_empty_string(result_text):
-                    result_text = '<no output>'
+                    result_text = '[no output]'
 
                 self.reply_markup = telegram.ReplyKeyboardMarkup(
                     [['/enter', '/space', '/quit'], ['/start']],
@@ -102,15 +102,15 @@ class FrotzbotChat():
             text = self.cmd_quit()
         elif self.interpreter.prompt is None:
             # Wait, what?
-            text = '<WARNING: You did something really unexpected here. '
+            text = '[WARNING: You did something really unexpected here. '
             text = text + 'I\'m gonna ignore your input and just past '
             text = text + 'current output from interpreter.\n'
             text = text + 'No promises though. '
-            text = text + 'Demons might fly out of my nose for all I know.\n>'
+            text = text + 'Demons might fly out of my nose for all I know.\n]'
 
             result_text = self.window_separator.join(self.interpreter.get())
             if is_empty_string(result_text):
-                result_text = '<no output>'
+                result_text = '[no output]'
 
             text = text + result_text
         else:
@@ -128,14 +128,14 @@ class FrotzbotChat():
                     result_texts = self.interpreter.send_and_receive(text)
                 except (IOError, BrokenPipeError):
                     traceback.print_exc()
-                    text = '<Error during communication with interpreter>'
+                    text = '[Error during communication with interpreter]'
                 else:
                     # response might contain only whitespaces.
                     # since bots can't send 'empty' messages,
                     # assume it means 'press anykey to continue'
                     text = self.window_separator.join(result_texts)
                     if is_empty_string(text):
-                        text = '<press /enter to continue>'
+                        text = '[press /enter to continue]'
 
         return text
 
@@ -159,7 +159,7 @@ class FrotzbotChat():
         self.interpreter = None  # TODO force kill interpreter process
         self.handle_message = self.cmd_start
         self.reply_markup = telegram.ReplyKeyboardHide()
-        return '<No active games. /start a new session?>'
+        return '[No active games. /start a new session?]'
 
     def reply(self, bot, update, handler=None, text=None):
         if handler is None:
@@ -181,6 +181,7 @@ class FrotzbotChat():
                     chat_id=self.chat_id,
                     text=msg,
                     timeout=5.0,
+                    parse_mode='HTML',
                     reply_markup=self.reply_markup)
             return msg_strings
         else:

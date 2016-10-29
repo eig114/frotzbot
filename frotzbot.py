@@ -54,14 +54,14 @@ def reload_conf(bot, update, conf_path):
             chat.interpreter_path = config['interpreter']
             chat.interpreter_args = config['interpreter_args']
 
-        text = '<Done! Changes will apply on next restart>'
+        text = '[Done! Changes will apply on next restart]'
         bot.sendMessage(
             chat_id=update.message.chat_id,
             text=text)
         log_dialog(update.message, [text])
     except Exception:
         # traceback.print_exc()
-        text = '<Something went wrong. Your new config is probably invalid or something>'
+        text = '[Something went wrong. Your new config is probably invalid or something]'
         bot.sendMessage(
             chat_id=update.message.chat_id,
             text=text)
@@ -113,7 +113,7 @@ def quit_interpreter(bot, update):
 
 
 def unknown_cmd(bot, update):
-    text = '<I beg your pardon?>'
+    text = '[I beg your pardon?]'
     bot.sendMessage(
         chat_id=update.message.chat_id,
         text=text)
@@ -121,7 +121,7 @@ def unknown_cmd(bot, update):
 
 
 def unsupported(bot, update):
-    text = '<I don\'t support this command yet. Sorry!>'
+    text = '[I don\'t support this command yet. Sorry!]'
     bot.sendMessage(
         chat_id=update.message.chat_id,
         text=text)

@@ -1,8 +1,16 @@
 import json
 import subprocess
-import sys
 import splitstream
 import logging
+
+frotzbot_remglk_styles = {
+    'emphasized': 'i',
+    'preformatted': 'code',
+    'header': 'b',
+    'subheader': 'b',
+    'alert': 'b',
+    'note': 'i'
+}
 
 
 class FrotzbotBackend():
@@ -72,7 +80,7 @@ class FrotzbotBackend():
                 for line in lines:
                     line_contents = line['content']
                     for line_content in line_contents:
-                        text = text + line_content['text'].replace('\n', ' ')
+                            text = text + self.get_styled_text(line_content)
                     text = text + '\n'
             elif 'text' in content_update:
                 lines = [x for x in content_update['text']
@@ -87,7 +95,7 @@ class FrotzbotBackend():
                                              if x.get('style', '') != 'input' or x['text'] != filter_input_echo_str]
 
                         for line_content in line_contents:
-                            text = text + line_content['text']
+                            text = text + self.get_styled_text(line_content)
                     text = text + '\n'
             elif 'clear' in content_update:
                 continue
@@ -96,12 +104,19 @@ class FrotzbotBackend():
 
             update_dict[content_update['id']] = text
 
-            
         # now that we have filled update_dict, refresh window contents
         for window in self.windows:
             window['content_text'] = update_dict.get(
                 window['id'],
                 window.get('content_text', ''))
+
+    def get_styled_text(self, content):
+        text = content['text']
+        if 'style' in content and content['style'] in frotzbot_remglk_styles:
+            style = frotzbot_remglk_styles[content['style']]
+            text = text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+            text = '<%s>' % style + text + '</%s>' % style
+        return text
 
     def get_raw(self):
         return self.json_iter.__next__()
