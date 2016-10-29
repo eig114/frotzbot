@@ -81,15 +81,13 @@ class FrotzbotChat():
                     [['/start']],
                     resize_keyboard=True)
             else:
-                result_texts = [x for x in self.interpreter.get()
-                                if not is_empty_string(x)]
-                result_text = self.window_separator.join(result_texts)
-                if not result_text:
+                result_text = self.window_separator.join(self.interpreter.get())
+                if is_empty_string(result_text):
                     result_text = '<no output>'
 
-                    self.reply_markup = telegram.ReplyKeyboardMarkup(
-                        [['/enter', '/space', '/quit'], ['/start']],
-                        resize_keyboard=True)
+                self.reply_markup = telegram.ReplyKeyboardMarkup(
+                    [['/enter', '/space', '/quit'], ['/start']],
+                    resize_keyboard=True)
                 self.handle_message = self.send_to_terp
         return result_text
 
@@ -110,10 +108,8 @@ class FrotzbotChat():
             text = text + 'No promises though. '
             text = text + 'Demons might fly out of my nose for all I know.\n>'
 
-            result_texts = [x for x in self.interpreter.get()
-                            if not is_empty_string(x)]
-            result_text = self.window_separator.join(result_texts)
-            if not result_text:
+            result_text = self.window_separator.join(self.interpreter.get())
+            if is_empty_string(result_text):
                 result_text = '<no output>'
 
             text = text + result_text
@@ -137,14 +133,9 @@ class FrotzbotChat():
                     # response might contain only whitespaces.
                     # since bots can't send 'empty' messages,
                     # assume it means 'press anykey to continue'
-                    result_texts = [x for x in result_texts
-                                    if not is_empty_string(x)]
                     text = self.window_separator.join(result_texts)
-                    if not text:
+                    if is_empty_string(text):
                         text = '<press /enter to continue>'
-                    #elif text.endswith('\n>\n') and len(text) > 3:
-                    # try to remove input prompt
-                    #    text = text[:-3]
 
         return text
 
