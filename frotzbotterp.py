@@ -12,18 +12,18 @@ frotzbot_remglk_styles = {
     'note': 'i'
 }
 
+default_init_string = '{ \"type\": \"init\", \"gen\": 0, \"metrics\": { \"width\":60, \"height\":100 }, \"support\": [ \"hyperlinks\", \"graphics\" ] }'
+
 
 class FrotzbotBackend():
     def __init__(self,
                  arg_frotz_path,
                  arg_game_path,
                  savefile_prefix='',
-                 terp_args=['-fm', '-width', '60', '-height', '100']):
+                 terp_args=None,
+                 terp_init_string=default_init_string):
         self.log = logging.getLogger('FrotzbotBackend')
         self.log.setLevel(logging.DEBUG)
-
-        if not terp_args:
-            self.log.warning('WARNING: NO TERP ARGS SPECIFIED! REMGLK WILL NOT PRODUCE ANY OUTPUT UNTIL FORMAT ARGUMENTS ARE SPECIFIED MANUALLY!')
 
         self.terp_path = arg_frotz_path
         self.game_path = arg_game_path
@@ -44,6 +44,8 @@ class FrotzbotBackend():
             self.terp_proc = None
             raise err
         else:
+            self.log.debug("INTERPRETER IN: %s", terp_init_string)
+            self.send_raw(terp_init_string)
             # get iterator over json output stream
             self.json_iter = map(lambda x: json.loads(x.decode('utf-8')),
                                  splitstream.splitfile(self.terp_proc.stdout,
