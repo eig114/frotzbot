@@ -1,5 +1,5 @@
 {
-	"NOTICE ME!": "rename your config to config.json and delete this key-value pair",
+  "NOTICE ME!": "rename your config to config.json",
   "api_key": "api_key_here",
   "interpreter": "path/to/default/interpreter",
   "interpreter_args": [
@@ -7,7 +7,8 @@
     "args",
     "for",
     "interpreter"
-  ],	
+  ],
+  "init_string": "{ \"type\": \"init\", \"gen\": 0, \"metrics\": { \"width\":60, \"height\":100 }, \"support\": [ ] }",
   "stories": [
     {
       "name": "Zork 1",
