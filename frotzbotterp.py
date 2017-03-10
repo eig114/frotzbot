@@ -132,8 +132,9 @@ class FrotzbotBackend():
 
         # check for errors
         if out_json['type'] == 'error':
-            return ['INTERPRETER ERROR: ' + out_json.get(
-                'message', 'ERROR MESSAGE NOT SET. THIS INTERPRETER STINKS.')]
+            error_msg = out_json.get(
+                'message', 'ERROR MESSAGE NOT SET. THIS INTERPRETER STINKS.')
+            return ['INTERPRETER ERROR: ' + error_msg] + self.get(previous_input)
 
         self.process_update(out_json, previous_input)
         text_list = [window.get('content_text', '') for window in self.windows]
