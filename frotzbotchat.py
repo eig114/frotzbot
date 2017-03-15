@@ -29,6 +29,7 @@ class FrotzbotChat():
         self.interpreter_path = config['interpreter']
         self.interpreter_args = config['interpreter_args']
         self.window_separator = config.get('window_separator', '\n\n')
+        self.terp_list = config.get('interpreter_list')
         self.interpreter = None
         self.reply_markup = None
 
@@ -61,7 +62,7 @@ class FrotzbotChat():
             game = next(x for x in self.games_dict if x['name'] == text)
         except StopIteration:
             result_text = '[Dont\'t know this one. Choose another]'
-            entries = list(map(lambda x: [x['name']], self.games_dict))
+            entries = [[x['name']] for x in self.games_dict]
             self.reply_markup = telegram.ReplyKeyboardMarkup(
                 entries, resize_keyboard=True, one_time_keyboard=True)
             self.handle_message = self.select_game
@@ -99,7 +100,14 @@ class FrotzbotChat():
         file.download(filename)
 
         self.handle_message = lambda msg: self.select_terp(filename, msg)
-        return "[Select terp]"
+        entries = [[x['name']] for x in self.terp_list]
+        self.reply_markup = telegram.ReplyKeyboardMarkup(
+            entries, resize_keyboard=True)
+        result_text = "[Select interpreter]"
+        for terp in self.terp_list:
+            result_text = result_text + '\n' + terp['name']
+
+        return result_text
 
     def select_game(self, message):
         text = message.text
@@ -112,27 +120,37 @@ class FrotzbotChat():
 
     def select_terp(self, filename, message):
         text = message.text
-        try:
-            self.interpreter = frotzbotterp.FrotzbotBackend(
-                'remglk-terps' + os.path.sep + text,
-                filename,
-                'savedata' + os.path.sep + str(self.chat_id) + '_',
-                self.interpreter_args)
-        except OSError:
-            result_text = '[Could not start interpreter]'
-            self.handle_message = self.cmd_start
-            self.reply_markup = telegram.ReplyKeyboardMarkup(
-                [['/start']],
-                resize_keyboard=True)
-        else:
-            result_text = self.window_separator.join(self.interpreter.get())
-            if is_empty_string(result_text):
-                result_text = '[no output]'
 
+        try:
+            terp = next(x for x in self.terp_list if x['name'] == text)
+        except StopIteration:
+            result_text = '[Dont\'t know this one. Choose another]'
+            entries = [[x['name']] for x in self.terp_list]
             self.reply_markup = telegram.ReplyKeyboardMarkup(
-                [['/enter', '/space', '/quit'], ['/start']],
-                resize_keyboard=True)
-            self.handle_message = self.send_to_terp
+                entries, resize_keyboard=True, one_time_keyboard=True)
+            self.handle_message = lambda msg: self.select_terp(filename, msg)
+        else:
+            try:
+                self.interpreter = frotzbotterp.FrotzbotBackend(
+                    terp['path'],
+                    filename,
+                    'savedata' + os.path.sep + str(self.chat_id) + '_',
+                    self.interpreter_args)
+            except OSError:
+                result_text = '[Could not start interpreter]'
+                self.handle_message = self.cmd_start
+                self.reply_markup = telegram.ReplyKeyboardMarkup(
+                    [['/start']],
+                    resize_keyboard=True)
+            else:
+                result_text = self.window_separator.join(self.interpreter.get())
+                if is_empty_string(result_text):
+                    result_text = '[no output]'
+
+                self.reply_markup = telegram.ReplyKeyboardMarkup(
+                    [['/enter', '/space', '/quit'], ['/start']],
+                    resize_keyboard=True)
+                self.handle_message = self.send_to_terp
         return result_text
 
     def save(self, text):
@@ -146,18 +164,16 @@ class FrotzbotChat():
         if self.interpreter is None:
             text = self.cmd_quit()
         elif self.interpreter.prompt is None:
-            # Wait, what?
-            text = '[WARNING: You did something really unexpected here. '
-            text = text + 'I\'m gonna ignore your input and just past '
-            text = text + 'current output from interpreter.\n'
-            text = text + 'No promises though. '
-            text = text + 'Demons might fly out of my nose for all I know.\n]'
+            text = '[WARNING: interpreter returned valid response, but no input prompt. Posssibly wrong interpreter was chosen]'
 
-            result_text = self.window_separator.join(self.interpreter.get())
-            if is_empty_string(result_text):
-                result_text = '[no output]'
+            try:
+                result_text = self.window_separator.join(self.interpreter.get())
+                if is_empty_string(result_text):
+                    result_text = self.cmd_quit()
+            except (StopIteration):
+                result_text = self.cmd_quit()
 
-            text = text + result_text
+            text = text + '\n' + result_text
         else:
             # check for special commands first
             # deprecated_cmds = ['save', 'restore', 'quit']
@@ -184,23 +200,25 @@ class FrotzbotChat():
 
         return text
 
-    def cmd_enter(self, message):
+    def cmd_enter(self, message=None):
         if self.interpreter is None:
             text = self.cmd_quit()
+        elif self.interpreter.prompt is None:
+            text = '[WARNING: interpreter returned valid response, but no input prompt. Posssibly wrong interpreter was chosen]\n' + self.cmd_quit()
         elif self.interpreter.prompt['type'] == 'char':
             text = self.send_to_terp("return")
         else:
             text = self.send_to_terp("\n")
         return text
 
-    def cmd_space(self, message):
+    def cmd_space(self, message=None):
         if self.interpreter is None:
             text = self.cmd_quit()
         else:
             text = self.send_to_terp(' ')
         return text
 
-    def cmd_quit(self, message):
+    def cmd_quit(self, message=None):
         self.interpreter = None  # TODO force kill interpreter process
         self.handle_message = self.cmd_start
         self.reply_markup = telegram.ReplyKeyboardHide()
