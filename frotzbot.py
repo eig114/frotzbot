@@ -18,23 +18,18 @@ logging.basicConfig(
     format='[%(asctime)s-%(name)s-%(levelname)s]\n%(message)s',
     datefmt='%Y-%m-%d %H:%M:%S',
     level=logging.DEBUG,
-    filename='frotzbot.log'
-)
+    filename='frotzbot.log')
 logging.getLogger('telegram').setLevel(logging.WARNING)
 
 
 def log_dialog(in_message, out_messages):
-    logging.info('@%s[%d] sent: %r' % (
-        in_message.from_user.username,
-        in_message.from_user.id,
-        in_message.text)
-    )
+    logging.info('@%s[%d] sent: %r' %
+                 (in_message.from_user.username, in_message.from_user.id,
+                  in_message.text))
     for out_message in out_messages:
         logging.info('Answering @%s[%d]: %r' % (
-            in_message.from_user.username,
-            in_message.from_user.id,
-            out_message if out_message is not None else '[None]')
-        )
+            in_message.from_user.username, in_message.from_user.id, out_message
+            if out_message is not None else '[None]'))
 
 
 def on_error(bot, update, error):
@@ -55,76 +50,74 @@ def reload_conf(bot, update, conf_path):
             chat.interpreter_args = config['interpreter_args']
 
         text = '[Done! Changes will apply on next restart]'
-        bot.sendMessage(
-            chat_id=update.message.chat_id,
-            text=text)
+        bot.sendMessage(chat_id=update.message.chat_id, text=text)
         log_dialog(update.message, [text])
     except Exception:
         # traceback.print_exc()
         text = '[Something went wrong. Your new config is probably invalid or something]'
-        bot.sendMessage(
-            chat_id=update.message.chat_id,
-            text=text)
+        bot.sendMessage(chat_id=update.message.chat_id, text=text)
         log_dialog(update.message, [text])
         logging.exception('JSON configuration loading failed')
 
 
-def get_chat(chat_id):
+def get_chat(bot, chat_id):
     global chat_dict
     global config
     if (chat_id in chat_dict):
         chat = chat_dict[chat_id]
     else:
         logging.info('New chat instance: %s' % chat_id)
-        chat = frotzbotchat.FrotzbotChat(chat_id, config)
+        chat = frotzbotchat.FrotzbotChat(bot, chat_id, config)
         chat_dict[chat_id] = chat
 
     return chat
 
 
 def start(bot, update):
-    chat = get_chat(update.message.chat_id)
-    response_msgs = chat.reply(bot, update, chat.cmd_start)
+    chat = get_chat(bot, update.message.chat_id)
+    response_msgs = chat.reply(update, chat.cmd_start)
     log_dialog(update.message, response_msgs)
 
 
 def enter(bot, update):
-    chat = get_chat(update.message.chat_id)
-    response_msgs = chat.reply(bot, update, chat.cmd_enter)
+    chat = get_chat(bot, update.message.chat_id)
+    response_msgs = chat.reply(update, chat.cmd_enter)
     log_dialog(update.message, response_msgs)
 
 
 def space(bot, update):
-    chat = get_chat(update.message.chat_id)
-    response_msgs = chat.reply(bot, update, chat.cmd_enter)
+    chat = get_chat(bot, update.message.chat_id)
+    response_msgs = chat.reply(update, chat.cmd_enter)
     log_dialog(update.message, response_msgs)
 
 
 def handle_text(bot, update):
-    chat = get_chat(update.message.chat_id)
-    response_msgs = chat.reply(bot, update)
+    chat = get_chat(bot, update.message.chat_id)
+    response_msgs = chat.reply(update)
+    log_dialog(update.message, response_msgs)
+
+
+def handle_file(bot, update):
+    chat = get_chat(bot, update.message.chat_id)
+    response_msgs = chat.reply(update)
     log_dialog(update.message, response_msgs)
 
 
 def quit_interpreter(bot, update):
-    chat = get_chat(update.message.chat_id)
-    response_msgs = chat.reply(bot, update, chat.cmd_quit)
+    chat = get_chat(bot, update.message.chat_id)
+    response_msgs = chat.reply(update, chat.cmd_quit)
     log_dialog(update.message, response_msgs)
 
 
 def unknown_cmd(bot, update):
     text = '[I beg your pardon?]'
-    bot.sendMessage(
-        chat_id=update.message.chat_id,
-        text=text)
+    bot.sendMessage(chat_id=update.message.chat_id, text=text)
     log_dialog(update.message, [text])
 
 
 def unsupported(bot, update):
     text = '[I don\'t support this command yet. Sorry!]'
-    bot.sendMessage(
-        chat_id=update.message.chat_id,
-        text=text)
+    bot.sendMessage(chat_id=update.message.chat_id, text=text)
     log_dialog(update.message.text, [text])
 
 
@@ -145,10 +138,12 @@ def main(config_path='config.json'):
     space_cmd_handler = telegram.ext.CommandHandler('space', space)
     quit_cmd_handler = telegram.ext.CommandHandler('quit', quit_interpreter)
     reload_handler = telegram.ext.CommandHandler(
-        'reload_conf',
-        lambda b, u: reload_conf(b, u, config_path))
+        'reload_conf', lambda b, u: reload_conf(b, u, config_path))
     terp_cmd_handler = telegram.ext.MessageHandler([telegram.ext.Filters.text],
                                                    handle_text)
+    file_handler = telegram.ext.MessageHandler(
+        [telegram.ext.Filters.document], handle_file)
+
     unknown_cmd_handler = telegram.ext.MessageHandler(
         [telegram.ext.Filters.command], unknown_cmd)
 
@@ -164,6 +159,9 @@ def main(config_path='config.json'):
 
     # text handlers
     dispatcher.add_handler(terp_cmd_handler)
+
+    # file handler
+    dispatcher.add_handler(file_handler)
 
     # always add unknown cmd handler last
     dispatcher.add_handler(unknown_cmd_handler)
