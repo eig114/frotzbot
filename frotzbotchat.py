@@ -27,7 +27,7 @@ class FrotzbotChat():
         self.chat_id = chat_id
         self.games_dict = config['stories']
         self.interpreter_path = config['interpreter']
-        self.interpreter_args = config['interpreter_args']
+        self.interpreter_args = config.get('interpreter_args', [])
         self.window_separator = config.get('window_separator', '\n\n')
         self.terp_list = config.get('interpreter_list')
         self.interpreter = None
@@ -39,7 +39,7 @@ class FrotzbotChat():
         text = message.text
         result_text = None
         if text != '/start':
-            result_text = self.ignore(message)
+            result_text = None
         else:
             result_text = '[What game would you like to play?]\n\n'
             for game in self.games_dict:
@@ -52,16 +52,12 @@ class FrotzbotChat():
             self.handle_message = self.select_game
         return result_text
 
-    def ignore(self, *ignored_args):
-        return None
-        #return 'ignore_stub'
-
     def select_game_text(self, text):
         result_text = None
         try:
             game = next(x for x in self.games_dict if x['name'] == text)
         except StopIteration:
-            result_text = '[Dont\'t know this one. Choose another]'
+            result_text = '[Don\'t know this one. Choose another]'
             entries = [[x['name']] for x in self.games_dict]
             self.reply_markup = telegram.ReplyKeyboardMarkup(
                 entries, resize_keyboard=True, one_time_keyboard=True)
@@ -124,7 +120,7 @@ class FrotzbotChat():
         try:
             terp = next(x for x in self.terp_list if x['name'] == text)
         except StopIteration:
-            result_text = '[Dont\'t know this one. Choose another]'
+            result_text = '[Don\'t know this one. Choose another]'
             entries = [[x['name']] for x in self.terp_list]
             self.reply_markup = telegram.ReplyKeyboardMarkup(
                 entries, resize_keyboard=True, one_time_keyboard=True)
@@ -153,14 +149,13 @@ class FrotzbotChat():
                 self.handle_message = self.send_to_terp
         return result_text
 
-    def save(self, text):
-        return 'save_stub'
-
-    def restore(self, text):
-        return 'restore_stub'
-
     def send_to_terp(self, message):
-        text = message.text
+        # Yeah, I'm lazy like that
+        if (isinstance(message, str)):
+            text = message
+        else:
+            text = message.text
+
         if self.interpreter is None:
             text = self.cmd_quit()
         elif self.interpreter.prompt is None:
@@ -206,20 +201,22 @@ class FrotzbotChat():
         elif self.interpreter.prompt is None:
             text = '[WARNING: interpreter returned valid response, but no input prompt. Posssibly wrong interpreter was chosen]\n' + self.cmd_quit()
         elif self.interpreter.prompt['type'] == 'char':
-            text = self.send_to_terp("return")
+            text = self.send_to_terp('return')
         else:
-            text = self.send_to_terp("\n")
+            text = self.send_to_terp('\n')
         return text
 
     def cmd_space(self, message=None):
         if self.interpreter is None:
             text = self.cmd_quit()
+        elif self.interpreter.prompt is None:
+            text = '[WARNING: interpreter returned valid response, but no input prompt. Posssibly wrong interpreter was chosen]\n' + self.cmd_quit()
         else:
             text = self.send_to_terp(' ')
         return text
 
     def cmd_quit(self, message=None):
-        self.interpreter = None  # TODO force kill interpreter process
+        self.interpreter = None
         self.handle_message = self.cmd_start
         self.reply_markup = telegram.ReplyKeyboardHide()
         return '[No active games. /start a new session?]'

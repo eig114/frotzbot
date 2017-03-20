@@ -87,7 +87,7 @@ def enter(bot, update):
 
 def space(bot, update):
     chat = get_chat(bot, update.message.chat_id)
-    response_msgs = chat.reply(update, chat.cmd_enter)
+    response_msgs = chat.reply(update, chat.cmd_space)
     log_dialog(update.message, response_msgs)
 
 
