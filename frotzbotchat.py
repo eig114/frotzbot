@@ -218,7 +218,7 @@ class FrotzbotChat():
     def cmd_quit(self, message=None):
         self.interpreter = None
         self.handle_message = self.cmd_start
-        self.reply_markup = telegram.ReplyKeyboardHide()
+        self.reply_markup = telegram.ReplyKeyboardRemove()
         return '[No active games. /start a new session?]'
 
     def reply(self, update, handler=None, text=None):
