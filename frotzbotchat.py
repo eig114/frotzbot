@@ -38,7 +38,7 @@ class FrotzbotChat():
     def cmd_start(self, message):
         text = message.text
         result_text = None
-        if text != '/start':
+        if not(re.compile('^/start@.*$').match(text)):
             result_text = None
         else:
             result_text = '[What game would you like to play?]\n\n'
