@@ -22,5 +22,4 @@ After that, you need to rename config.json.example to config.json and edit it ac
 
 ## Known issues
 - To quit a game, you must issue /quit (or /start, if you want to start a new game) command because bot cannot determine when interpreter process died
-- Saving and restoring works, but only if user tried to restore existing save. If any error occures during restore, interpreter dies, and, again, bot cannot see it right away
 - Bot reacts to every incoming message, which is fine for single player, but might be troublesome when playing in group. To get it to shut up, issue a /quit command.
