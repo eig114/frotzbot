@@ -40,16 +40,35 @@ class FrotzbotChat():
         result_text = None
         if not(re.compile('^/start(@.*)?$').match(text)):
             result_text = None
+        elif self.interpreter is not None:
+            result_text = '[Are you sure you want to restart? (y/n)]'
+            self.handle_message = self.restart_dialog
         else:
-            result_text = '[What game would you like to play?]\n\n'
-            for game in self.games_dict:
-                result_text = result_text + game['name'] + '\n'
+            result_text = self.newgame_dialog()
+        return result_text
 
-            # entries = list(map(lambda x: [x['name']], self.games_dict))
-            entries = [[x['name']] for x in self.games_dict]
-            self.reply_markup = telegram.ReplyKeyboardMarkup(
-                entries, resize_keyboard=True, one_time_keyboard=True)
-            self.handle_message = self.select_game
+    def newgame_dialog(self):
+        result_text = '[What game would you like to play?]\n\n'
+        for game in self.games_dict:
+            result_text = result_text + game['name'] + '\n'
+
+        # entries = list(map(lambda x: [x['name']], self.games_dict))
+        entries = [[x['name']] for x in self.games_dict]
+        self.reply_markup = telegram.ReplyKeyboardMarkup(
+            entries, resize_keyboard=True, one_time_keyboard=True)
+        self.handle_message = self.select_game
+        return result_text
+
+    def restart_dialog(self, message):
+        text = message.text
+        result_text = None
+        if text == 'y' or text == 'yes':
+            result_text = '[Alright then.]\n' + self.newgame_dialog()
+        elif text == 'n' or text == 'no':
+            result_text = '[Never mind]'
+            self.handle_message = self.send_to_terp  # Return to game
+        else:
+            result_text = '[yes or no, please]'
         return result_text
 
     def select_game_text(self, text):

@@ -10,6 +10,8 @@ import json
 import frotzbotchat
 import logging
 
+from telegram.ext import Updater,CommandHandler,MessageHandler,Filters
+
 chat_dict = dict()
 config = dict()
 
@@ -32,13 +34,15 @@ def log_dialog(in_message, out_messages):
             if out_message is not None else '[None]'))
 
 
-def on_error(bot, update, error):
+def on_error(update, context):
     logger = logging.getLogger(__name__)
-    logger.warn('Update %r caused error %r!' % (update, error))
-    print(error)
+    logger.warn('Update %r caused error %r!' % (update, context.error))
+    print(context.error)
 
 
-def reload_conf(bot, update, conf_path):
+
+def reload_conf(update, context, conf_path):
+    bot = context.bot
     try:
         global config
         with open('config.json', 'r') as f:
@@ -73,49 +77,57 @@ def get_chat(bot, chat_id):
     return chat
 
 
-def start(bot, update):
+def start(update, context):
+    bot = context.bot
     chat = get_chat(bot, update.message.chat_id)
     response_msgs = chat.reply(update, chat.cmd_start)
     log_dialog(update.message, response_msgs)
 
 
-def enter(bot, update):
+def enter(update, context):
+    bot = context.bot
     chat = get_chat(bot, update.message.chat_id)
     response_msgs = chat.reply(update, chat.cmd_enter)
     log_dialog(update.message, response_msgs)
 
 
-def space(bot, update):
+def space(update, context):
+    bot = context.bot
     chat = get_chat(bot, update.message.chat_id)
     response_msgs = chat.reply(update, chat.cmd_space)
     log_dialog(update.message, response_msgs)
 
 
-def handle_text(bot, update):
+def handle_text(update, context):
+    bot = context.bot
     chat = get_chat(bot, update.message.chat_id)
     response_msgs = chat.reply(update)
     log_dialog(update.message, response_msgs)
 
 
-def handle_file(bot, update):
+def handle_file(update, context):
+    bot = context.bot
     chat = get_chat(bot, update.message.chat_id)
     response_msgs = chat.reply(update)
     log_dialog(update.message, response_msgs)
 
 
-def quit_interpreter(bot, update):
+def quit_interpreter(update, context):
+    bot = context.bot
     chat = get_chat(bot, update.message.chat_id)
     response_msgs = chat.reply(update, chat.cmd_quit)
     log_dialog(update.message, response_msgs)
 
 
-def unknown_cmd(bot, update):
+def unknown_cmd(update, context):
+    bot = context.bot
     text = '[I beg your pardon?]'
     bot.sendMessage(chat_id=update.message.chat_id, text=text)
     log_dialog(update.message, [text])
 
 
-def unsupported(bot, update):
+def unsupported(update, context):
+    bot = context.bot
     text = '[I don\'t support this command yet. Sorry!]'
     bot.sendMessage(chat_id=update.message.chat_id, text=text)
     log_dialog(update.message.text, [text])
@@ -129,23 +141,19 @@ def main(config_path='config.json'):
 
     # set up updater
     global updater
-    updater = telegram.ext.Updater(config['api_key'])
+    updater = Updater(config['api_key'], use_context=True)
     dispatcher = updater.dispatcher
 
     # set up message handlers
-    start_cmd_handler = telegram.ext.CommandHandler('start', start)
-    enter_cmd_handler = telegram.ext.CommandHandler('enter', enter)
-    space_cmd_handler = telegram.ext.CommandHandler('space', space)
-    quit_cmd_handler = telegram.ext.CommandHandler('quit', quit_interpreter)
-    reload_handler = telegram.ext.CommandHandler(
-        'reload_conf', lambda b, u: reload_conf(b, u, config_path))
-    terp_cmd_handler = telegram.ext.MessageHandler([telegram.ext.Filters.text],
-                                                   handle_text)
-    file_handler = telegram.ext.MessageHandler(
-        [telegram.ext.Filters.document], handle_file)
+    start_cmd_handler = CommandHandler('start', start)
+    enter_cmd_handler = CommandHandler('enter', enter)
+    space_cmd_handler = CommandHandler('space', space)
+    quit_cmd_handler =CommandHandler('quit', quit_interpreter)
+    reload_handler = CommandHandler('reload_conf', lambda u,c: reload_conf(u, c, config_path))
+    terp_cmd_handler = MessageHandler(telegram.ext.Filters.text, handle_text)
+    file_handler = MessageHandler(telegram.ext.Filters.document, handle_file)
 
-    unknown_cmd_handler = telegram.ext.MessageHandler(
-        [telegram.ext.Filters.command], unknown_cmd)
+    unknown_cmd_handler = MessageHandler(telegram.ext.Filters.command, unknown_cmd)
 
     # error handlers
     dispatcher.add_error_handler(on_error)
