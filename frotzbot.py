@@ -118,6 +118,10 @@ def quit_interpreter(update, context):
     response_msgs = chat.reply(update, chat.cmd_quit)
     log_dialog(update.message, response_msgs)
 
+def list_savefiles(update, context):
+    chat = get_chat(context.bot, update.message.chat_id)
+    response_msgs = chat.reply(update, chat.cmd_list_savefiles)
+    log_dialog(update.message, response_msgs)
 
 def unknown_cmd(update, context):
     bot = context.bot
@@ -149,6 +153,7 @@ def main(config_path='config.json'):
     enter_cmd_handler = CommandHandler('enter', enter)
     space_cmd_handler = CommandHandler('space', space)
     quit_cmd_handler =CommandHandler('quit', quit_interpreter)
+    listsaves_cmd_handler = CommandHandler('list_saves', list_savefiles)
     reload_handler = CommandHandler('reload_conf', lambda u,c: reload_conf(u, c, config_path))
     terp_cmd_handler = MessageHandler(telegram.ext.Filters.text, handle_text)
     file_handler = MessageHandler(telegram.ext.Filters.document, handle_file)
@@ -164,6 +169,7 @@ def main(config_path='config.json'):
     dispatcher.add_handler(space_cmd_handler)
     dispatcher.add_handler(quit_cmd_handler)
     dispatcher.add_handler(reload_handler)
+    dispatcher.add_handler(listsaves_cmd_handler)
 
     # text handlers
     dispatcher.add_handler(terp_cmd_handler)

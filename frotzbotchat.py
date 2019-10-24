@@ -7,6 +7,7 @@ import re
 import itertools
 import os
 
+from fnmatch import fnmatch
 
 def grouper(iterable, n):
     """group ITERABLE by N elements"""
@@ -239,6 +240,11 @@ class FrotzbotChat():
         self.handle_message = self.cmd_start
         self.reply_markup = telegram.ReplyKeyboardRemove()
         return '[No active games. /start a new session?]'
+
+    def cmd_list_savefiles(self, message=None):
+        # list savefiles starting with chat_id, substracting it in the process
+        files = [f.split('_',1)[1] for f in os.listdir('savedata') if fnmatch(f, str(self.chat_id) + '_*')]
+        return '\n'.join(files)
 
     def reply(self, update, handler=None, text=None):
         if handler is None:
